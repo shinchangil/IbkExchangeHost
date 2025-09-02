@@ -58,7 +58,24 @@ namespace ExchangeTest
             }
             else
             {
-                _curIdx += 207;
+                _curIdx += 6;
+                string brcd = packetString.Substring(_curIdx, 4);
+                _curIdx += 4;
+                string brnc_krn_nm = packetString.Substring(_curIdx, 50);
+                int padCountMsg = 0;
+                foreach (var item in brnc_krn_nm)
+                {
+                    bool bKorean = IsKorean(item);
+                    if (bKorean)
+                    {
+                        padCountMsg++;
+                    }
+                }
+
+                _curIdx += 50 - padCountMsg;
+                string trn_ymd = packetString.Substring(_curIdx, 8);
+                
+                _curIdx += 151;
                 base_ymd = packetString.Substring(_curIdx, 8);
 
                 _curIdx += 14;
@@ -82,7 +99,13 @@ namespace ExchangeTest
 
 
         }
-
+        bool IsKorean(char ch)
+        {
+            if ((0xAC00 <= ch && ch <= 0xD7A3) || (0x3131 <= ch && ch <= 0x318E))
+                return true;
+            else
+                return false;
+        }
 
         /// <summary>데이터셋구분코드</summary>
         private String dtst_dcd;
@@ -200,6 +223,45 @@ namespace ExchangeTest
                 _result = _currencylist.Count.ToString();
 
                 return _result;
+            }
+        }
+
+        public List<ibkEAICurrencyElement>? GetDataHost()
+        {
+            ibkEAICurrencyElement _currency;
+            List<ibkEAICurrencyElement> _currencylist;
+            Boolean isConverted = false;
+
+            //String _result = String.Empty;
+
+            if (currencyString.Length == 0)
+                return null;
+            else
+            {
+                _currencylist = new List<ibkEAICurrencyElement>();
+
+                var _currArr = Split(currencyString, 125);
+
+                if (null != _currArr)
+                {
+                    for (int _count = 0; _count < _currArr.Count(); _count++)
+                    {
+                        var _curStr = _currArr.ElementAt(_count);
+
+                        if (_curStr.Contains("0"))
+                        {
+                            _currency = new ibkEAICurrencyElement(true, _curStr, out isConverted);
+
+                            if (isConverted)
+                                _currencylist.Add(_currency);
+                        }
+                    }
+                }
+
+                //  ibkEAICurrencyElement를 이용한 파싱 구문 추가 필요
+
+
+                return _currencylist;
             }
         }
 

@@ -64,6 +64,37 @@ namespace ExchangeTest
             }
         }
 
+        public ibkEAICurrencyElement(Boolean isHost, String packetString, out Boolean isConverted)
+        {
+            Int32 _curIdx = 0;
+            isConverted = false;
+
+            if (isHost)
+            {
+                _curIdx = 1;
+
+                crcd = packetString.Substring(_curIdx, 3);
+
+                _curIdx += 6;
+                Decimal.TryParse(packetString.Substring(_curIdx, 12), out tlcb_rt);
+
+                _curIdx += 12;
+                Decimal.TryParse(packetString.Substring(_curIdx, 12), out tlch_sell_rt);
+
+                _curIdx += 12;
+                Decimal.TryParse(packetString.Substring(_curIdx, 12), out csh_bng_rt);
+
+                _curIdx += 12;
+                Decimal.TryParse(packetString.Substring(_curIdx, 12), out csh_sell_rt);
+
+                _curIdx += 24;
+                Decimal.TryParse(packetString.Substring(_curIdx, 12), out brgn_base_rt);
+
+                _curIdx += 12;
+                if (Decimal.TryParse(packetString.Substring(_curIdx, 12), out tscn_rt)) isConverted = true;
+            }
+        }
+
         /// <summary>통화코드</summary>
         private String crcd;
 
