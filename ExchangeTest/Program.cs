@@ -25,7 +25,7 @@ namespace ExchangeTest
 
             //  EAI 서버 주소 환경설정으로 이동
             //String ipAddress = "172.18.190.83";
-            String ipAddress = "";
+            //String ipAddress = "";
 
             ///docker 올리기
             ///docker run -itd --name catus -v `pwd`:/home/castware/agent rockeybaseimage:1.0
@@ -73,7 +73,7 @@ namespace ExchangeTest
             ibkEAIPacketRequestExchange _request = new ibkEAIPacketRequestExchange();
 
             String _date = String.Empty;
-            Int32 _startPos = 0;
+            //Int32 _startPos = 0;
             Boolean _isHost = true;
 
             if (args.Length == 1)
@@ -117,17 +117,39 @@ namespace ExchangeTest
 
             try
             {
+                // 입장시 Hello 전달
+                Byte[] _data =
+                    Encoding.UTF8.GetBytes(_sendPacket);
+                // localhost ,13000 통신 연결 요청
+                TcpClient client = new TcpClient(cFileConfig.EaiIpaddress, cFileConfig.EaiSendPort);
+
+                logger.Info($"Send Start - 2");
+
+                logger.Trace($"Assembled Packet - Encoded : {_data}");
+
+                logger.Info($"Send Start - 3");
+
+                NetworkStream stream = client.GetStream();
+
+                logger.Info($"Send End");
+
+                var _recv = stream.ReadAsync(_data, 0, _data.Length).GetAwaiter();
+                logger.Info($"Recv Encoding Working 1 " + _recv.GetResult());
+
+
+
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
                 Encoding euckr = Encoding.GetEncoding(949);
-                byte[] sampleBytes = euckr.GetBytes(_sample);
-                string _length = euckr.GetString(sampleBytes, 0, 6);
+                //통신인 안될때 _sample  문자열로 테스트.
+                //_data = euckr.GetBytes(_sample);
+                string _length = euckr.GetString(_data, 0, 6);
                 logger.Info($"Recv Encoding Working 2 " + _length);
 
                 int _packetCount = Int32.Parse(_length) + 6;
 
                 logger.Info($"Recv Encoding Working 3 " + _packetCount);
 
-                string responseData = euckr.GetString(sampleBytes, 0, _packetCount);
+                string responseData = euckr.GetString(_data, 0, _packetCount);
 
                 logger.Info($"Message received: \"{responseData}\"");
 
