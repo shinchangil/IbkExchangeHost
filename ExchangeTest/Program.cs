@@ -117,13 +117,17 @@ namespace ExchangeTest
 
             try
             {
-                // 입장시 Hello 전달
-                Byte[] _data =
-                    Encoding.UTF8.GetBytes(_sendPacket);
+                logger.Trace($"Assembled Packet : {_sendPacket}");
+
+                logger.Info($"Send Start");
+
                 // localhost ,13000 통신 연결 요청
                 TcpClient client = new TcpClient(cFileConfig.EaiIpaddress, cFileConfig.EaiSendPort);
 
                 logger.Info($"Send Start - 2");
+                // 입장시 Hello 전달
+                Byte[] _data =
+                    Encoding.UTF8.GetBytes(_sendPacket);
 
                 logger.Trace($"Assembled Packet - Encoded : {_data}");
 
@@ -133,23 +137,48 @@ namespace ExchangeTest
 
                 logger.Info($"Send End");
 
-                var _recv = stream.ReadAsync(_data, 0, _data.Length).GetAwaiter();
-                logger.Info($"Recv Encoding Working 1 " + _recv.GetResult());
 
+                // 서버로 전송
+                stream.WriteAsync(_data, 0, _data.Length).GetAwaiter();
 
+                logger.Info($"Send End");
+                // 수신 데이터 스트링 선언
+                string responseData = string.Empty;
+
+                logger.Info($"Recv Encoding Start");
 
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
                 Encoding euckr = Encoding.GetEncoding(949);
-                //통신인 안될때 _sample  문자열로 테스트.
-                //_data = euckr.GetBytes(_sample);
-                string _length = euckr.GetString(_data, 0, 6);
+
+                // First, read the 6-byte length header
+                byte[] lengthBuffer = new byte[6];
+                int totalBytesRead = 0;
+                while (totalBytesRead < 6)
+                {
+                    int bytesRead = stream.Read(lengthBuffer, totalBytesRead, 6 - totalBytesRead);
+                    if (bytesRead == 0) throw new Exception("Connection closed while reading length");
+                    totalBytesRead += bytesRead;
+                }
+
+                string _length = euckr.GetString(lengthBuffer, 0, 6);
                 logger.Info($"Recv Encoding Working 2 " + _length);
+                int dataLength = Int32.Parse(_length);
+                int totalLength = dataLength + 6;
+                logger.Info($"Recv Encoding Working 3 " + totalLength);
 
-                int _packetCount = Int32.Parse(_length) + 6;
+                // Now read the rest of the data
+                byte[] dataBuffer = new byte[totalLength];
+                Buffer.BlockCopy(lengthBuffer, 0, dataBuffer, 0, 6);
 
-                logger.Info($"Recv Encoding Working 3 " + _packetCount);
+                totalBytesRead = 6; // We already have the length header
+                while (totalBytesRead < totalLength)
+                {
+                    int bytesRead = stream.Read(dataBuffer, totalBytesRead, totalLength - totalBytesRead);
+                    if (bytesRead == 0) throw new Exception("Connection closed while reading data");
+                    totalBytesRead += bytesRead;
+                }
 
-                string responseData = euckr.GetString(_data, 0, _packetCount);
+                responseData = euckr.GetString(dataBuffer, 0, totalLength);
 
                 logger.Info($"Message received: \"{responseData}\"");
 
